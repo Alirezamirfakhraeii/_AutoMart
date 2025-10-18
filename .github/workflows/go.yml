@@ -1,0 +1,60 @@
+name: CI Build for AutoMart
+
+# چه زمانی این ورک‌فلو اجرا شود:
+on:
+  push:
+    branches: [ "main" ] # هرگاه کدی به شاخه main پوش شود
+  pull_request:
+    branches: [ "main" ] # هرگاه یک Pull Request برای main باز شود
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest # استفاده از یک ماشین مجازی استاندارد لینوکس
+
+    steps:
+    - name: Checkout Code # ۱. دریافت کدهای شما
+      uses: actions/checkout@v4
+
+    # ------------------------------------------------------------------
+    # ۲. تنظیم محیط Go و کش (Caching)
+    # working-directory: './src' باعث می‌شود که اکشن به دنبال go.mod/go.sum در src بگردد.
+    # ------------------------------------------------------------------
+    - name: Setup Go Environment and Cache Modules
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22' # از نسخهٔ جدیدتر و پایدارتر Go استفاده کنید
+      working-directory: './src'
+      
+    # ------------------------------------------------------------------
+    # ۳. دانلود وابستگی‌ها (Dependencies)
+    # این دستور اکنون ماژول‌های لازم را دانلود و کش می‌کند.
+    # ------------------------------------------------------------------
+    - name: Download Go Modules
+      run: go mod download
+      working-directory: './src'
+
+    # ------------------------------------------------------------------
+    # ۴. اجرای تست‌ها (Test)
+    # بهترین کار این است که قبل از Build، تست‌ها را اجرا کنید.
+    # ------------------------------------------------------------------
+    - name: Run Tests
+      run: go test -v ./...
+      working-directory: './src'
+
+    # ------------------------------------------------------------------
+    # ۵. ساخت پروژه (Build)
+    # بیلد گرفتن از فایل اصلی شما که در src/cmd/main.go قرار دارد.
+    # ------------------------------------------------------------------
+    - name: Build Project Executable
+      run: go build -v -o automart-app ./cmd
+      working-directory: './src'
+      
+    # ------------------------------------------------------------------
+    # ۶. آرتیفکت (Artifact) - خروجی CI
+    # خروجی نهایی build (فایل اجرایی) را ذخیره می‌کند.
+    # ------------------------------------------------------------------
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: automart-binary
+        path: src/automart-app # مسیر فایل اجرایی که Build شد.
